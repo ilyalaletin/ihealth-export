@@ -41,7 +41,7 @@ make docker-build-local
 
 SQLite хранится в Docker volume `ihealth-data`. Порт меняется через `IHEALTH_PORT`.
 
-Образ: `ghcr.io/ilyalaletin/ihealth-export:latest`. Первый пакет GHCR по умолчанию приватный; для анонимного скачивания с NAS нужно один раз открыть настройки пакета на GitHub и выбрать `Change visibility → Public`. Либо выполнить на NAS `docker login ghcr.io`.
+Образ: `ghcr.io/ilyalaletin/ihealth-export:latest`. Пакет публичный и скачивается с NAS без `docker login`.
 
 ## Установка на iPhone без платной учётной записи
 
