@@ -18,13 +18,10 @@ enum HealthTypeCatalog {
         result.append(HKObjectType.electrocardiogramType())
         result.append(HKObjectType.audiogramSampleType())
         result.append(HKObjectType.stateOfMindType())
-        result.append(HKObjectType.visionPrescriptionType())
-        result.append(HKObjectType.medicationDoseEventType())
         result.append(HKSeriesType.workoutRoute())
         result.append(HKSeriesType.heartbeat())
-        if let bloodPressure = HKObjectType.correlationType(forIdentifier: .bloodPressure) { result.append(bloodPressure) }
-        if let food = HKObjectType.correlationType(forIdentifier: .food) { result.append(food) }
-        if let cda = HKObjectType.documentType(forIdentifier: .CDA) { result.append(cda) }
+        // Vision prescriptions, medication dose events, food/blood-pressure correlations,
+        // and clinical documents cannot be requested through regular read authorization.
         result.append(HKScoredAssessmentType(.GAD7))
         result.append(HKScoredAssessmentType(.PHQ9))
         return Dictionary(grouping: result, by: \.identifier).compactMap(\.value.first).sorted { $0.identifier < $1.identifier }
