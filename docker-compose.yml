@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  ihealth:
+    build:
+      context: .
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      IHEALTH_ADDR: ":8080"
+      IHEALTH_DB: /data/ihealth.db
+      IHEALTH_TOKEN: ${IHEALTH_TOKEN}
+    ports:
+      - "${IHEALTH_PORT:-8080}:8080"
+    volumes:
+      - ihealth-data:/data
+
+volumes:
+  ihealth-data:
