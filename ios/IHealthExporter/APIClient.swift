@@ -17,7 +17,9 @@ struct APIClient {
 
     func health() async throws {
         guard let url = URL(string: normalizedBaseURL + "/healthz") else { throw APIError.invalidURL }
-        let (_, response) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 10
+        let (_, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw APIError.invalidResponse }
     }
 

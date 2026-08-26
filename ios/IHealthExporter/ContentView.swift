@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @AppStorage("serverURL") private var serverURL = "http://192.168.1.2:8080"
+    @AppStorage("serverURL") private var serverURL = "http://192.168.3.10:8124"
     @AppStorage("serverToken") private var serverToken = ""
     @AppStorage("lastSuccessfulSync") private var lastSync = 0.0
     @StateObject private var exporter = HealthExporter()

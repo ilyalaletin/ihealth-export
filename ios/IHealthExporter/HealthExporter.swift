@@ -21,6 +21,7 @@ final class HealthExporter: ObservableObject {
             status = "Запрашиваю доступ к HealthKit…"
             try await store.requestAuthorization(toShare: [], read: Set(types))
             let client = APIClient(baseURL: baseURL, token: token)
+            status = "Проверяю сервер…"
             try await client.health()
             let deviceID = Self.deviceID()
             let profile = readProfile()
