@@ -10,8 +10,8 @@ struct ContentView: View {
         NavigationStack {
             Form {
                 Section("Сервер на NAS") {
-                    TextField("http://IP:PORT", text: $serverURL).textInputAutocapitalization(.never).keyboardType(.URL)
-                    SecureField("Bearer-токен", text: $serverToken).textInputAutocapitalization(.never)
+                    TextField("http://IP:PORT", text: $serverURL).textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                    SecureField("Bearer-токен", text: $serverToken).textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
                 Section("Синхронизация") {
                     if exporter.isRunning { ProgressView(value: exporter.progress) }
