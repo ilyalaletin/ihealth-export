@@ -6,3 +6,4 @@ data/
 DerivedData/
 *.xcuserstate
 xcuserdata/
+/docker/ihealth-server-linux-amd64

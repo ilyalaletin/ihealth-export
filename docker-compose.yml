@@ -1,6 +1,7 @@
 version: "3.8"
 services:
   ihealth:
+    image: ghcr.io/ilyalaletin/ihealth-export:latest
     build:
       context: .
     platform: linux/amd64

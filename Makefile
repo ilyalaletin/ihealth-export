@@ -1,4 +1,4 @@
-.PHONY: fmt test build ios-build docker-build
+.PHONY: fmt test build ios-build docker-build docker-build-local
 
 fmt:
 	gofmt -w cmd/ihealth-server/main.go internal/app/*.go
@@ -14,3 +14,8 @@ ios-build:
 
 docker-build:
 	docker-compose build
+
+# Avoids running the amd64 Go toolchain through QEMU on an arm64 development Mac.
+docker-build-local:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o docker/ihealth-server-linux-amd64 ./cmd/ihealth-server
+	docker build --platform linux/amd64 -f docker/Dockerfile.local -t ghcr.io/ilyalaletin/ihealth-export:local .

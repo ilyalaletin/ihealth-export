@@ -19,12 +19,29 @@ openssl rand -hex 32
 
 Результат второй команды записать в `.env` как `IHEALTH_TOKEN`, затем:
 
+Готовый образ для `linux/amd64` публикуется из `main`:
+
 ```bash
-docker-compose up -d --build
+docker-compose pull
+docker-compose up -d
 curl http://NAS_IP:8080/healthz
 ```
 
+Для локальной сборки вместо скачивания:
+
+```bash
+docker-compose up -d --build
+```
+
+На arm64 Mac, если legacy Docker builder падает при исполнении amd64 Go через QEMU:
+
+```bash
+make docker-build-local
+```
+
 SQLite хранится в Docker volume `ihealth-data`. Порт меняется через `IHEALTH_PORT`.
+
+Образ: `ghcr.io/ilyalaletin/ihealth-export:latest`. Первый пакет GHCR по умолчанию приватный; для анонимного скачивания с NAS нужно один раз открыть настройки пакета на GitHub и выбрать `Change visibility → Public`. Либо выполнить на NAS `docker login ghcr.io`.
 
 ## Установка на iPhone без платной учётной записи
 
