@@ -6,6 +6,9 @@ final class HealthExporter: ObservableObject {
     @Published var status = "Готово"
     @Published var isRunning = false
     @Published var progress = 0.0
+    @Published var sentRecords = 0
+    @Published var skippedTypes = 0
+    @Published var failedTypes = 0
 
     private let store = HKHealthStore()
     private let pageSize = 500
@@ -13,7 +16,7 @@ final class HealthExporter: ObservableObject {
 
     func synchronize(baseURL: String, token: String) async {
         guard !isRunning else { return }
-        isRunning = true; progress = 0
+        isRunning = true; progress = 0; sentRecords = 0; skippedTypes = 0; failedTypes = 0
         defer { isRunning = false }
         do {
             guard HKHealthStore.isHealthDataAvailable() else { throw ExportError.healthUnavailable }
@@ -27,35 +30,46 @@ final class HealthExporter: ObservableObject {
             let profile = readProfile()
             _ = try await client.upload(UploadBatch(deviceID: deviceID, exportedAt: iso.string(from: Date()), type: "profile", samples: [], deletedIDs: [], profile: profile))
 
-            var totalAccepted = 0
             for (index, type) in types.enumerated() {
                 status = "\(index + 1)/\(types.count): \(type.identifier)"
-                totalAccepted += try await export(type: type, deviceID: deviceID, client: client)
+                do {
+                    let result = try await export(type: type, deviceID: deviceID, client: client)
+                    if !result.hadChanges { skippedTypes += 1 }
+                } catch {
+                    failedTypes += 1
+                }
                 progress = Double(index + 1) / Double(types.count)
             }
-            status = "Готово: передано \(totalAccepted) записей"
-            UserDefaults.standard.set(Date(), forKey: "lastSuccessfulSync")
+            if failedTypes == 0 {
+                status = "Готово"
+                UserDefaults.standard.set(Date(), forKey: "lastSuccessfulSync")
+            } else {
+                status = "Завершено с ошибками — повторите синхронизацию"
+            }
         } catch {
             status = "Ошибка: \(error.localizedDescription)"
         }
     }
 
-    private func export(type: HKSampleType, deviceID: String, client: APIClient) async throws -> Int {
+    private func export(type: HKSampleType, deviceID: String, client: APIClient) async throws -> (accepted: Int, hadChanges: Bool) {
         var anchor = loadAnchor(for: type.identifier)
         var accepted = 0
+        var hadChanges = false
         while true {
             let page = try await anchoredPage(type: type, anchor: anchor)
             let samples = page.samples.map(encode)
             let batch = UploadBatch(deviceID: deviceID, exportedAt: iso.string(from: Date()), type: type.identifier, samples: samples, deletedIDs: page.deleted.map { $0.uuid.uuidString }, profile: nil)
             if !samples.isEmpty || !page.deleted.isEmpty {
+                hadChanges = true
                 let result = try await client.upload(batch)
                 accepted += result.accepted
+                sentRecords += result.accepted
             }
             saveAnchor(page.anchor, for: type.identifier)
             anchor = page.anchor
             if page.samples.count + page.deleted.count < pageSize { break }
         }
-        return accepted
+        return (accepted, hadChanges)
     }
 
     private func anchoredPage(type: HKSampleType, anchor: HKQueryAnchor?) async throws -> (samples: [HKSample], deleted: [HKDeletedObject], anchor: HKQueryAnchor) {

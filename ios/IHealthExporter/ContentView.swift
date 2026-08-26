@@ -14,7 +14,11 @@ struct ContentView: View {
                     SecureField("Bearer-токен", text: $serverToken).textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
                 Section("Синхронизация") {
-                    if exporter.isRunning { ProgressView(value: exporter.progress) }
+                    if exporter.isRunning {
+                        ProgressView(value: exporter.progress)
+                        Text("sent: \(exporter.sentRecords)   skip: \(exporter.skippedTypes)   error: \(exporter.failedTypes)")
+                            .monospacedDigit()
+                    }
                     Text(exporter.status).font(.footnote).foregroundStyle(.secondary)
                     if lastSync > 0 { Text("Последняя успешная: \(Date(timeIntervalSince1970: lastSync).formatted())").font(.footnote) }
                     Button(exporter.isRunning ? "Выполняется…" : "Синхронизировать") {
