@@ -19,7 +19,7 @@ struct APIClient {
         guard let url = URL(string: normalizedBaseURL + "/healthz") else { throw APIError.invalidURL }
         var request = URLRequest(url: url)
         request.timeoutInterval = 10
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await perform(request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw APIError.invalidResponse }
     }
 
@@ -31,7 +31,7 @@ struct APIClient {
         request.setValue("Bearer \(normalizedToken)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 120
         request.httpBody = try JSONEncoder().encode(batch)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await perform(request)
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
         guard http.statusCode == 200 else { throw APIError.server(http.statusCode, String(data: data, encoding: .utf8) ?? "") }
         return try JSONDecoder().decode(UploadResult.self, from: data)
@@ -43,5 +43,21 @@ struct APIClient {
 
     private var normalizedToken: String {
         token.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        let retryable: Set<URLError.Code> = [.timedOut, .networkConnectionLost, .cannotConnectToHost, .notConnectedToInternet]
+        var lastError: Error?
+        for attempt in 0..<3 {
+            do {
+                return try await URLSession.shared.data(for: request)
+            } catch let error as URLError where retryable.contains(error.code) {
+                lastError = error
+                if attempt < 2 {
+                    try await Task.sleep(for: .seconds(Double(1 << attempt)))
+                }
+            }
+        }
+        throw lastError ?? APIError.invalidResponse
     }
 }
