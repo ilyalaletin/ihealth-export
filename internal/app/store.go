@@ -22,6 +22,8 @@ func OpenStore(path string) (*Store, error) {
 	db.SetMaxOpenConns(1)
 	for _, statement := range []string{
 		`PRAGMA journal_mode=WAL`,
+		`PRAGMA synchronous=NORMAL`,
+		`PRAGMA busy_timeout=5000`,
 		`PRAGMA foreign_keys=ON`,
 		`CREATE TABLE IF NOT EXISTS samples (
 			id TEXT PRIMARY KEY, type TEXT NOT NULL, kind TEXT NOT NULL,
@@ -63,22 +65,27 @@ func (s *Store) ApplyBatch(ctx context.Context, batch UploadBatch) (UploadResult
 	defer tx.Rollback()
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	result := UploadResult{}
+	upsert, err := tx.PrepareContext(ctx, `INSERT INTO samples(
+		id,type,kind,start_date,end_date,value,text_value,unit,activity_type,activity_name,
+		source_name,source_bundle_id,device_name,metadata_json,payload_json,device_id,updated_at
+	) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
+		type=excluded.type,kind=excluded.kind,start_date=excluded.start_date,end_date=excluded.end_date,
+		value=excluded.value,text_value=excluded.text_value,unit=excluded.unit,
+		activity_type=excluded.activity_type,activity_name=excluded.activity_name,
+		source_name=excluded.source_name,source_bundle_id=excluded.source_bundle_id,
+		device_name=excluded.device_name,metadata_json=excluded.metadata_json,
+		payload_json=excluded.payload_json,device_id=excluded.device_id,updated_at=excluded.updated_at`)
+	if err != nil {
+		return result, fmt.Errorf("prepare sample upsert: %w", err)
+	}
+	defer upsert.Close()
 	for _, sample := range batch.Samples {
 		if sample.ID == "" || sample.Type == "" || sample.StartDate == "" || sample.EndDate == "" {
 			return result, errors.New("each sample requires id, type, start_date and end_date")
 		}
 		metadata := normalizedJSON(sample.Metadata)
 		payload := normalizedJSON(sample.Payload)
-		_, err = tx.ExecContext(ctx, `INSERT INTO samples(
-			id,type,kind,start_date,end_date,value,text_value,unit,activity_type,activity_name,
-			source_name,source_bundle_id,device_name,metadata_json,payload_json,device_id,updated_at
-		) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
-			type=excluded.type,kind=excluded.kind,start_date=excluded.start_date,end_date=excluded.end_date,
-			value=excluded.value,text_value=excluded.text_value,unit=excluded.unit,
-			activity_type=excluded.activity_type,activity_name=excluded.activity_name,
-			source_name=excluded.source_name,source_bundle_id=excluded.source_bundle_id,
-			device_name=excluded.device_name,metadata_json=excluded.metadata_json,
-			payload_json=excluded.payload_json,device_id=excluded.device_id,updated_at=excluded.updated_at`,
+		_, err = upsert.ExecContext(ctx,
 			sample.ID, sample.Type, sample.Kind, sample.StartDate, sample.EndDate, sample.Value,
 			sample.TextValue, sample.Unit, sample.ActivityType, sample.ActivityName, sample.SourceName,
 			sample.SourceBundleID, sample.DeviceName, metadata, payload, batch.DeviceID, now)

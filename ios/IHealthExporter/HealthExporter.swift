@@ -11,7 +11,7 @@ final class HealthExporter: ObservableObject {
     @Published var failedTypes = 0
 
     private let store = HKHealthStore()
-    private let pageSize = 500
+    private let pageSize = 5_000
     private let iso = ISO8601DateFormatter()
 
     func synchronize(baseURL: String, token: String) async {
