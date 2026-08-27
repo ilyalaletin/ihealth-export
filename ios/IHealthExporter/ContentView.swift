@@ -18,6 +18,9 @@ struct ContentView: View {
                         ProgressView(value: exporter.progress)
                         Text("sent: \(exporter.sentRecords)   skip: \(exporter.skippedTypes)   error: \(exporter.failedTypes)")
                             .monospacedDigit()
+                        Text("Автоблокировка отключена до завершения")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     Text(exporter.status).font(.footnote).foregroundStyle(.secondary)
                     if lastSync > 0 { Text("Последняя успешная: \(Date(timeIntervalSince1970: lastSync).formatted())").font(.footnote) }

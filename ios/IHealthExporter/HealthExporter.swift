@@ -1,5 +1,6 @@
 import Foundation
 import HealthKit
+import UIKit
 
 @MainActor
 final class HealthExporter: ObservableObject {
@@ -17,7 +18,11 @@ final class HealthExporter: ObservableObject {
     func synchronize(baseURL: String, token: String) async {
         guard !isRunning else { return }
         isRunning = true; progress = 0; sentRecords = 0; skippedTypes = 0; failedTypes = 0
-        defer { isRunning = false }
+        UIApplication.shared.isIdleTimerDisabled = true
+        defer {
+            UIApplication.shared.isIdleTimerDisabled = false
+            isRunning = false
+        }
         do {
             guard HKHealthStore.isHealthDataAvailable() else { throw ExportError.healthUnavailable }
             let types = HealthTypeCatalog.sampleTypes
